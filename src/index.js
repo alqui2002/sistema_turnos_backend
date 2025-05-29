@@ -15,7 +15,7 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('✅ Conectado a la base de datos MySQL');
-    await sequelize.sync(); // crea tablas según modelos
+    await sequelize.sync({ alter: true });
     console.log('✅ Tablas sincronizadas');
     
     const port = process.env.PORT || 4000;
