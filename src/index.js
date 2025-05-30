@@ -2,15 +2,16 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { sequelize } from './config/db.js';
 import authRoutes from './routes/auth.js';
+import turnoRoutes from './routes/turno.js';
+
 
 dotenv.config();
 const app = express();
 app.use(express.json());
 
-// Rutas
 app.use('/auth', authRoutes);
+app.use('/turnos', turnoRoutes);
 
-// Conectar y sincronizar Sequelize
 async function start() {
   try {
     await sequelize.authenticate();

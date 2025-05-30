@@ -1,12 +1,11 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { User } from '../models/user.js'; // Asegúrate de que la ruta sea correcta
+import { User } from '../models/user.js'; 
 dotenv.config();
 
 const SALT_ROUNDS = 10;
 
-// POST /auth/register
 export async function register(req, res) {
   try {
     const { email, password, first_name,last_name, role } = req.body;
@@ -19,7 +18,6 @@ export async function register(req, res) {
   }
 }
 
-// POST /auth/login
 export async function login(req, res) {
   try {
     const { email, password } = req.body;
