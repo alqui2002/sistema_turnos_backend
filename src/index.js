@@ -3,14 +3,28 @@ import dotenv from 'dotenv';
 import { sequelize } from './config/db.js';
 import authRoutes from './routes/auth.js';
 import turnoRoutes from './routes/turno.js';
+import barberoRoutes from './routes/barbero.js';
+import { validarJWT } from './middlewares/validarJWT.js';
+import cors from 'cors';
+
 
 
 dotenv.config();
 const app = express();
+
+app.use(
+  cors({
+    origin: 'http://localhost:5173'  // la URL de tu frontend
+  })
+);
+
+
 app.use(express.json());
 
 app.use('/auth', authRoutes);
-app.use('/turnos', turnoRoutes);
+app.use('/turnos', validarJWT,turnoRoutes);
+app.use('/barberos',validarJWT, barberoRoutes);
+
 
 async function start() {
   try {
