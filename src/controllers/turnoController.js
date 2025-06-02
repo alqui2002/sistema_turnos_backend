@@ -1,6 +1,8 @@
 import { Turno } from '../models/Turno.js';
 import { User } from '../models/user.js';
 import { sequelize } from '../config/db.js';
+import { Op } from "sequelize";
+
 
 export async function agendarTurno(req, res) {
   try {
@@ -67,23 +69,42 @@ export async function listarTurnos(req, res) {
   try {
     const { clienteId, barberoId } = req.query;
     const where = {};
+
     if (clienteId) where.clienteId = clienteId;
     if (barberoId) where.barberoId = barberoId;
 
+    // 1) Calcular fecha de hoy en YYYY-MM-DD
+    const hoy = new Date().toISOString().slice(0, 10); // "2025-06-02", por ejemplo
+
+    // 2) Marcar como 'completed' todos los turnos pasados (fecha < hoy) que aún estén "agendado"
+    await Turno.update(
+      { estado: "completed" },
+      {
+        where: {
+          fecha: { [Op.lt]: hoy },      // fecha < hoy
+          estado: "agendado"            // solo los que estaban agendados
+        }
+      }
+    );
+
+    // 3) Recuperar todos los turnos (incluyendo los que acabamos de marcar como "completed")
     const turnos = await Turno.findAll({
       where,
       include: [
-        { model: User, as: 'cliente', attributes: ['id','first_name','last_name'] },
-        { model: User, as: 'barbero', attributes: ['id','first_name','last_name'] }
+        { model: User, as: "cliente", attributes: ["id", "first_name", "last_name"] },
+        { model: User, as: "barbero", attributes: ["id", "first_name", "last_name"] }
       ],
-       order: [
-        [sequelize.literal("FIELD(estado, 'agendado', 'cancelado', 'completed')"), 'ASC']
+      order: [
+        [sequelize.literal("FIELD(estado, 'agendado', 'cancelado', 'completed')"), "ASC"],
+        ["fecha", "ASC"],
+        ["horario", "ASC"]
       ]
     });
+
     res.json(turnos);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error al listar turnos', error: err.message });
+    res.status(500).json({ message: "Error al listar turnos", error: err.message });
   }
 }
 

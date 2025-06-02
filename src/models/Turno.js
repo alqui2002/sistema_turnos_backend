@@ -17,7 +17,7 @@ export const Turno = sequelize.define('Turno', {
     allowNull: false
   },
   estado: {
-    type: DataTypes.ENUM('agendado','cancelado'),
+    type: DataTypes.ENUM('agendado','cancelado', 'completed'),
     allowNull: false,
     defaultValue: 'agendado'
   }
