@@ -2,6 +2,7 @@ import { Turno } from '../models/Turno.js';
 import { User } from '../models/user.js';
 import { sequelize } from '../config/db.js';
 import { Op } from "sequelize";
+import Cliente from "../models/Cliente.js";
 
 
 export async function agendarTurno(req, res) {
@@ -69,30 +70,34 @@ export async function listarTurnos(req, res) {
   try {
     const { clienteId, barberoId } = req.query;
     const where = {};
-
     if (clienteId) where.clienteId = clienteId;
     if (barberoId) where.barberoId = barberoId;
 
-    // 1) Calcular fecha de hoy en YYYY-MM-DD
-    const hoy = new Date().toISOString().slice(0, 10); // "2025-06-02", por ejemplo
+    const hoy = new Date().toISOString().slice(0, 10);
 
-    // 2) Marcar como 'completed' todos los turnos pasados (fecha < hoy) que aún estén "agendado"
     await Turno.update(
       { estado: "completed" },
       {
         where: {
-          fecha: { [Op.lt]: hoy },      // fecha < hoy
-          estado: "agendado"            // solo los que estaban agendados
+          fecha: { [Op.lt]: hoy },
+          estado: "agendado"
         }
       }
     );
 
-    // 3) Recuperar todos los turnos (incluyendo los que acabamos de marcar como "completed")
-    const turnos = await Turno.findAll({
+    const turnosDB = await Turno.findAll({
       where,
       include: [
-        { model: User, as: "cliente", attributes: ["id", "first_name", "last_name"] },
-        { model: User, as: "barbero", attributes: ["id", "first_name", "last_name"] }
+        {
+          model: User,
+          as: "cliente",
+          attributes: ["id", "first_name", "last_name", "email"]
+        },
+        {
+          model: User,
+          as: "barbero",
+          attributes: ["id", "first_name", "last_name", "email"]
+        }
       ],
       order: [
         [sequelize.literal("FIELD(estado, 'agendado', 'cancelado', 'completed')"), "ASC"],
@@ -101,7 +106,16 @@ export async function listarTurnos(req, res) {
       ]
     });
 
-    res.json(turnos);
+    const turnosConNombre = turnosDB.map((turnoInst) => {
+      const turno = turnoInst.toJSON();
+      if (turno.cliente) {
+        const clienteObj = new Cliente(turno.cliente);
+        turno.cliente.nombreCompleto = clienteObj.getNombreCompleto();
+      }
+
+      return turno;
+    });
+    res.json(turnosConNombre);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error al listar turnos", error: err.message });
@@ -111,7 +125,6 @@ export async function listarTurnos(req, res) {
 
 
 
-// GET /turnos/barbero/:barberoId?fecha=YYYY-MM-DD
 export async function listarTurnosPorBarbero(req, res) {
   try {
     const { barberoId } = req.params;
@@ -131,7 +144,6 @@ export async function listarTurnosPorBarbero(req, res) {
       return res.status(404).json({ message: 'Barbero no encontrado o rol inválido' });
     }
 
-    // 3️⃣ Traer todos los turnos agendados de ese día
     const turnos = await Turno.findAll({
       where: {
         barberoId,

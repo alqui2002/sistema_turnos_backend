@@ -61,7 +61,6 @@ export async function disponibilidadBarbero(req, res) {
       '18:00:00'
     ];
 
-    // Traer turnos agendados de ese día
     const turnos = await Turno.findAll({
       where: {
         barberoId,
